@@ -2,61 +2,141 @@ version: 2
 
 models:
   - name: stg_orders
-    description: "Cleaned orders with properly typed dates and status."
+    description: "Cleaned orders with typed timestamps and validated order_status."
     columns:
       - name: order_id
+        description: "Unique order identifier."
         tests:
-          - unique
           - not_null
+          - unique
       - name: customer_id
+        description: "Reference to the customer who placed the order."
         tests:
           - not_null
       - name: order_status
+        description: "Current lifecycle status of the order."
         tests:
           - not_null
           - accepted_values:
-              values: ['delivered', 'shipped', 'processing', 'canceled', 'invoiced', 'approved', 'created', 'unavailable']
+              values:
+                - delivered
+                - shipped
+                - processing
+                - canceled
+                - invoiced
+                - approved
+                - created
+                - unavailable
+      - name: purchased_at
+        description: "Timestamp when the order was placed."
+      - name: approved_at
+        description: "Timestamp when payment was approved."
+      - name: delivered_to_carrier_at
+        description: "Timestamp when the order was handed to the carrier."
+      - name: delivered_to_customer_at
+        description: "Timestamp when the order was delivered to the customer."
+      - name: estimated_delivery_at
+        description: "Seller-estimated delivery date at time of purchase."
 
   - name: stg_customers
-    description: "Customer data with geolocation info."
+    description: "Customer accounts with normalised city/state fields."
     columns:
       - name: customer_id
+        description: "Unique identifier per order (one customer_id per purchase)."
         tests:
-          - unique
           - not_null
+          - unique
+      - name: customer_unique_id
+        description: "Stable identifier for the same physical customer across orders."
+        tests:
+          - not_null
+      - name: customer_zip_code_prefix
+        description: "5-digit zip code prefix of the customer address."
+      - name: customer_city
+        description: "Customer city name (lower-cased and trimmed)."
+      - name: customer_state
+        description: "Brazilian state abbreviation (upper-cased and trimmed)."
 
   - name: stg_order_items
-    description: "Order line items with prices in BRL."
+    description: "Order line items with casted numeric prices and computed total."
     columns:
       - name: order_id
+        description: "Reference to the parent order."
+        tests:
+          - not_null
+      - name: order_item_id
+        description: "Sequential item number within the order."
+        tests:
+          - not_null
+      - name: product_id
+        description: "Reference to the product."
+        tests:
+          - not_null
+      - name: seller_id
+        description: "Reference to the seller who fulfilled this item."
         tests:
           - not_null
       - name: price
+        description: "Item price in BRL."
+        tests:
+          - not_null
+      - name: freight_value
+        description: "Shipping cost for this item in BRL."
+        tests:
+          - not_null
+      - name: total_item_value
+        description: "price + freight_value in BRL."
         tests:
           - not_null
 
   - name: stg_products
-    description: "Products with translated category names."
+    description: "Product catalog joined with English category translations."
     columns:
       - name: product_id
+        description: "Unique product identifier."
         tests:
+          - not_null
           - unique
+      - name: category_english
+        description: "Product category name in English (defaults to 'unknown')."
+        tests:
+          - not_null
+      - name: category_portuguese
+        description: "Product category name in Portuguese (defaults to 'unknown')."
+        tests:
           - not_null
 
   - name: stg_order_payments
-    description: "Payment breakdown per order."
+    description: "Payment records per order, one row per payment instrument."
     columns:
       - name: order_id
+        description: "Reference to the parent order."
+        tests:
+          - not_null
+      - name: payment_sequential
+        description: "Order of payment in case of split payments."
+        tests:
+          - not_null
+      - name: payment_type
+        description: "Payment method (credit_card, boleto, voucher, debit_card)."
         tests:
           - not_null
       - name: payment_value
+        description: "Amount paid through this payment instrument in BRL."
         tests:
           - not_null
 
   - name: stg_sellers
-    description: "Sellers with state information."
+    description: "Seller accounts with normalised city/state fields."
     columns:
       - name: seller_id
+        description: "Unique seller identifier."
         tests:
-          - unique
           - not_null
+          - unique
+      - name: seller_zip_code_prefix
+        description: "5-digit zip code prefix of the seller address."
+      - name: seller_city
+        description: "Seller city name (lower-cased and trimmed)."
+      - name: seller_state
+        description: "Brazilian state abbreviation (upper-cased and trimmed)."

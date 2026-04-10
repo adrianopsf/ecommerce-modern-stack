@@ -16,18 +16,19 @@ log = logging.getLogger(__name__)
 DATA_RAW_PATH = "/opt/airflow/data/raw"
 
 # Maps task_id -> (csv_filename, raw_table_name)
+# Table names mirror the CSV filenames (without .csv) to match dbt source definitions.
 OLIST_FILES: dict[str, tuple[str, str]] = {
-    "load_orders": ("olist_orders_dataset.csv", "orders"),
-    "load_customers": ("olist_customers_dataset.csv", "customers"),
-    "load_order_items": ("olist_order_items_dataset.csv", "order_items"),
-    "load_products": ("olist_products_dataset.csv", "products"),
-    "load_sellers": ("olist_sellers_dataset.csv", "sellers"),
-    "load_order_payments": ("olist_order_payments_dataset.csv", "order_payments"),
-    "load_order_reviews": ("olist_order_reviews_dataset.csv", "order_reviews"),
-    "load_geolocation": ("olist_geolocation_dataset.csv", "geolocation"),
+    "load_orders": ("olist_orders_dataset.csv", "olist_orders_dataset"),
+    "load_customers": ("olist_customers_dataset.csv", "olist_customers_dataset"),
+    "load_order_items": ("olist_order_items_dataset.csv", "olist_order_items_dataset"),
+    "load_products": ("olist_products_dataset.csv", "olist_products_dataset"),
+    "load_sellers": ("olist_sellers_dataset.csv", "olist_sellers_dataset"),
+    "load_order_payments": ("olist_order_payments_dataset.csv", "olist_order_payments_dataset"),
+    "load_order_reviews": ("olist_order_reviews_dataset.csv", "olist_order_reviews_dataset"),
+    "load_geolocation": ("olist_geolocation_dataset.csv", "olist_geolocation_dataset"),
     "load_category_translation": (
         "product_category_name_translation.csv",
-        "product_category_translation",
+        "product_category_name_translation",
     ),
 }
 

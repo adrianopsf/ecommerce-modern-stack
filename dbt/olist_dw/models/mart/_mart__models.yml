@@ -2,54 +2,107 @@ version: 2
 
 models:
   - name: mart_orders
-    description: "Full order view with customer info, payment, items and delivery metrics."
+    description: >
+      Delivered orders only, enriched with payment, item and delivery metrics.
+      Primary analytical table for order-level analysis.
     columns:
       - name: order_id
+        description: "Unique delivered order identifier."
         tests:
-          - unique
           - not_null
-      - name: total_payment_value
+          - unique
+      - name: customer_id
+        description: "Customer who placed this order."
         tests:
           - not_null
       - name: order_status
+        description: "Always 'delivered' in this mart (filtered at source)."
         tests:
           - not_null
           - accepted_values:
-              values: ['delivered', 'shipped', 'processing', 'canceled', 'invoiced', 'approved', 'created', 'unavailable']
+              values: [delivered]
+      - name: total_payment_value
+        description: "Total amount paid for the order in BRL."
+        tests:
+          - not_null
+      - name: delivery_days
+        description: "Calendar days from purchase to delivery."
+      - name: is_late_delivery
+        description: "True when actual delivery exceeded the estimated date."
+        tests:
+          - not_null
+      - name: order_month
+        description: "Purchase month formatted as YYYY-MM."
+        tests:
+          - not_null
 
   - name: mart_customers
-    description: "Customer profile with lifetime value and order frequency segments."
+    description: >
+      One row per unique customer with lifetime value metrics and spending segment.
+      De-duplicated using DISTINCT ON (customer_unique_id) ordered by total_spent DESC.
     columns:
       - name: customer_unique_id
+        description: "Stable customer identifier across multiple orders."
         tests:
-          - unique
           - not_null
-      - name: order_frequency_segment
+          - unique
+      - name: total_orders
+        description: "Total number of orders this customer has placed."
         tests:
-          - accepted_values:
-              values: ['high', 'medium', 'low']
-      - name: customer_value_segment
+          - not_null
+      - name: total_spent
+        description: "Lifetime spend in BRL."
         tests:
+          - not_null
+      - name: customer_segment
+        description: "Spending segment based on lifetime total_spent."
+        tests:
+          - not_null
           - accepted_values:
-              values: ['high_value', 'mid_value', 'low_value']
+              values: [high_value, medium_value, low_value]
 
   - name: mart_products
-    description: "Product catalog enriched with sales performance metrics."
+    description: >
+      Product catalog enriched with sales performance metrics derived from
+      delivered orders only (via mart_orders join).
     columns:
       - name: product_id
+        description: "Unique product identifier."
         tests:
+          - not_null
           - unique
+      - name: category_english
+        description: "Product category in English."
+        tests:
+          - not_null
+      - name: total_sold
+        description: "Number of units sold in delivered orders."
+        tests:
+          - not_null
+      - name: total_revenue
+        description: "Gross revenue from this product in BRL."
+        tests:
           - not_null
 
   - name: mart_monthly_sales
-    description: "Monthly aggregated sales metrics per order status."
+    description: >
+      Monthly aggregated sales KPIs — orders, revenue, late deliveries —
+      derived from mart_orders (delivered orders only).
     columns:
-      - name: sale_month
+      - name: order_month
+        description: "Month of purchase formatted as YYYY-MM."
         tests:
           - not_null
-      - name: order_status
+          - unique
+      - name: total_orders
+        description: "Distinct delivered orders in the month."
         tests:
           - not_null
-      - name: gross_revenue
+      - name: total_revenue
+        description: "Sum of total_payment_value for the month in BRL."
+        tests:
+          - not_null
+      - name: late_delivery_pct
+        description: "Percentage of orders delivered after the estimated date."
         tests:
           - not_null

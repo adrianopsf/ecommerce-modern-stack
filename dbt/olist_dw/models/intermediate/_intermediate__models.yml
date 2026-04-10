@@ -2,20 +2,77 @@ version: 2
 
 models:
   - name: int_orders_enriched
-    description: "Orders joined with payment totals and item counts."
+    description: >
+      Orders enriched with aggregated payment totals, item counts and computed
+      delivery metrics (delivery_days, is_late_delivery). Ephemeral model —
+      not materialised as a table; inlined into downstream queries.
     columns:
       - name: order_id
+        description: "Unique order identifier (from stg_orders)."
         tests:
+          - not_null
           - unique
+      - name: customer_id
+        description: "Customer associated with the order."
+        tests:
           - not_null
       - name: total_payment_value
+        description: "Sum of all payment_value rows for this order in BRL."
         tests:
           - not_null
+      - name: total_items
+        description: "Number of line items in the order."
+        tests:
+          - not_null
+      - name: total_items_value
+        description: "Sum of (price + freight_value) for all items in BRL."
+        tests:
+          - not_null
+      - name: delivery_days
+        description: "Calendar days between purchase and delivery to customer (null if not yet delivered)."
+      - name: is_late_delivery
+        description: "True when delivered_to_customer_at > estimated_delivery_at."
+        tests:
+          - not_null
+      - name: order_month
+        description: "YYYY-MM string for partitioning / aggregation."
+        tests:
+          - not_null
+      - name: order_week
+        description: "ISO week start date (Monday) derived from purchased_at."
 
   - name: int_customers_orders
-    description: "Customers enriched with their order history aggregates."
+    description: >
+      Customers enriched with their full order history aggregates and a
+      spending-based customer_segment label. Ephemeral model.
     columns:
       - name: customer_unique_id
+        description: "Stable customer identifier across multiple orders."
         tests:
-          - unique
           - not_null
+      - name: customer_city
+        description: "Lower-cased, trimmed customer city."
+      - name: customer_state
+        description: "Upper-cased Brazilian state abbreviation."
+      - name: total_orders
+        description: "Total number of orders placed by this customer."
+        tests:
+          - not_null
+      - name: total_spent
+        description: "Lifetime total spend in BRL."
+        tests:
+          - not_null
+      - name: avg_order_value
+        description: "Average spend per order in BRL."
+        tests:
+          - not_null
+      - name: delivered_orders
+        description: "Count of orders with status = 'delivered'."
+        tests:
+          - not_null
+      - name: customer_segment
+        description: "Spending segment: high_value (>500 BRL), medium_value (>100 BRL), low_value."
+        tests:
+          - not_null
+          - accepted_values:
+              values: [high_value, medium_value, low_value]

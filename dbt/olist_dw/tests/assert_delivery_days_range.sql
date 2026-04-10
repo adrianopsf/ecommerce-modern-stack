@@ -1,5 +1,5 @@
--- Asserts that delivery_days is within a plausible range (0–365 days).
--- Returns rows that violate the constraint (failures).
+-- Fails if delivery_days is negative or implausibly long (> 365 days).
+-- Returns the offending rows (dbt treats any returned row as a test failure).
 select
     order_id,
     delivery_days

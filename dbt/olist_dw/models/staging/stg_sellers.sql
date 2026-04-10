@@ -1,15 +1,7 @@
-with source as (
-    select * from {{ source('raw', 'sellers') }}
-),
-
-renamed as (
-    select
-        seller_id,
-        seller_zip_code_prefix as zip_code_prefix,
-        seller_city            as city,
-        seller_state           as state
-    from source
-    where seller_id is not null
-)
-
-select * from renamed
+select
+    seller_id,
+    seller_zip_code_prefix,
+    lower(trim(seller_city))   as seller_city,
+    upper(trim(seller_state))  as seller_state
+from {{ source('olist_raw', 'olist_sellers_dataset') }}
+where seller_id is not null

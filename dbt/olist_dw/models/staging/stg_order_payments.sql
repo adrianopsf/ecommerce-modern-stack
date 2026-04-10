@@ -1,16 +1,8 @@
-with source as (
-    select * from {{ source('raw', 'order_payments') }}
-),
-
-renamed as (
-    select
-        order_id,
-        cast(payment_sequential as integer)  as payment_sequential,
-        payment_type,
-        cast(payment_installments as integer) as payment_installments,
-        cast(payment_value as numeric)        as payment_value
-    from source
-    where order_id is not null
-)
-
-select * from renamed
+select
+    order_id,
+    payment_sequential::integer     as payment_sequential,
+    payment_type,
+    payment_installments::integer   as installments,
+    payment_value::numeric(10, 2)   as payment_value
+from {{ source('olist_raw', 'olist_order_payments_dataset') }}
+where order_id is not null

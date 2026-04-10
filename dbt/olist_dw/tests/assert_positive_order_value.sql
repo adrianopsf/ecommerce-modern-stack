@@ -1,7 +1,7 @@
--- Asserts that all orders in mart_orders have a non-negative total payment value.
--- Returns rows that violate the constraint (failures).
+-- Fails if any delivered order has total_payment_value <= 0.
+-- Returns the offending rows (dbt treats any returned row as a test failure).
 select
     order_id,
     total_payment_value
 from {{ ref('mart_orders') }}
-where total_payment_value < 0
+where total_payment_value <= 0

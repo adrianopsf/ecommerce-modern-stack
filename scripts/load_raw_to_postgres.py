@@ -17,16 +17,17 @@ from sqlalchemy import create_engine, text
 
 load_dotenv(Path(__file__).parents[1] / ".env")
 
+# Table names mirror CSV filenames (without .csv) to match dbt source definitions.
 OLIST_FILES = {
-    "olist_orders_dataset.csv": "orders",
-    "olist_customers_dataset.csv": "customers",
-    "olist_order_items_dataset.csv": "order_items",
-    "olist_products_dataset.csv": "products",
-    "olist_sellers_dataset.csv": "sellers",
-    "olist_order_payments_dataset.csv": "order_payments",
-    "olist_order_reviews_dataset.csv": "order_reviews",
-    "olist_geolocation_dataset.csv": "geolocation",
-    "product_category_name_translation.csv": "product_category_translation",
+    "olist_orders_dataset.csv": "olist_orders_dataset",
+    "olist_customers_dataset.csv": "olist_customers_dataset",
+    "olist_order_items_dataset.csv": "olist_order_items_dataset",
+    "olist_products_dataset.csv": "olist_products_dataset",
+    "olist_sellers_dataset.csv": "olist_sellers_dataset",
+    "olist_order_payments_dataset.csv": "olist_order_payments_dataset",
+    "olist_order_reviews_dataset.csv": "olist_order_reviews_dataset",
+    "olist_geolocation_dataset.csv": "olist_geolocation_dataset",
+    "product_category_name_translation.csv": "product_category_name_translation",
 }
 
 

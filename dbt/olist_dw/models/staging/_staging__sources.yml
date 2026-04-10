@@ -1,12 +1,12 @@
 version: 2
 
 sources:
-  - name: raw
-    description: "Raw Olist data loaded from CSVs into PostgreSQL raw schema."
+  - name: olist_raw
+    description: "Raw Olist Brazilian E-Commerce data loaded from CSVs into PostgreSQL raw schema."
     schema: raw
     tables:
-      - name: orders
-        description: "All orders placed on Olist platform."
+      - name: olist_orders_dataset
+        description: "All orders placed on the Olist marketplace."
         columns:
           - name: order_id
             description: "Unique order identifier."
@@ -17,16 +17,20 @@ sources:
             tests:
               - not_null
 
-      - name: customers
-        description: "Customer accounts."
+      - name: olist_customers_dataset
+        description: "Customer account records."
         columns:
           - name: customer_id
+            description: "Unique customer identifier (per order)."
             tests:
               - unique
               - not_null
+          - name: customer_unique_id
+            tests:
+              - not_null
 
-      - name: order_items
-        description: "Individual line items per order."
+      - name: olist_order_items_dataset
+        description: "Individual line items for each order."
         columns:
           - name: order_id
             tests:
@@ -35,7 +39,7 @@ sources:
             tests:
               - not_null
 
-      - name: products
+      - name: olist_products_dataset
         description: "Product catalog."
         columns:
           - name: product_id
@@ -43,17 +47,31 @@ sources:
               - unique
               - not_null
 
-      - name: order_payments
-        description: "Payment records per order."
+      - name: olist_sellers_dataset
+        description: "Seller accounts on the marketplace."
+        columns:
+          - name: seller_id
+            tests:
+              - unique
+              - not_null
+
+      - name: olist_order_payments_dataset
+        description: "Payment records, one row per payment method per order."
         columns:
           - name: order_id
             tests:
               - not_null
 
-      - name: sellers
-        description: "Seller accounts."
+      - name: olist_order_reviews_dataset
+        description: "Customer reviews per order."
         columns:
-          - name: seller_id
+          - name: order_id
             tests:
-              - unique
+              - not_null
+
+      - name: product_category_name_translation
+        description: "Portuguese-to-English translation of product category names."
+        columns:
+          - name: product_category_name
+            tests:
               - not_null
