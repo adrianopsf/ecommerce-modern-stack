@@ -127,7 +127,7 @@ jobs:
             ${{ runner.os }}-pip-dbt-
 
       - name: Install dbt
-        run: pip install dbt-postgres==1.7.0
+        run: pip install "dbt-postgres==1.7.0" "protobuf<5"
 
       - name: Copy profiles
         run: |
