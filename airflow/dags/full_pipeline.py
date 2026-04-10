@@ -1,7 +1,7 @@
 """DAG: olist_full_pipeline — weekly orchestration of ingest + dbt via TriggerDagRunOperator."""
 
-import logging
 from datetime import datetime, timedelta
+import logging
 
 from airflow.decorators import task
 from airflow.models import DAG

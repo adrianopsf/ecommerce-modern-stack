@@ -10,9 +10,9 @@ Reads DATA_RAW_PATH and Postgres credentials from environment variables
 import os
 from pathlib import Path
 
-import pandas as pd
 from dotenv import load_dotenv
 from loguru import logger
+import pandas as pd
 from sqlalchemy import create_engine, text
 
 load_dotenv(Path(__file__).parents[1] / ".env")

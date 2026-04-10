@@ -8,7 +8,6 @@ from airflow.decorators import task
 from airflow.exceptions import AirflowSkipException
 from airflow.models import DAG
 from airflow.operators.python import get_current_context
-
 from plugins.operators.olist_operator import OlistPostgresOperator
 
 log = logging.getLogger(__name__)

@@ -2,8 +2,9 @@
 
 from pathlib import Path
 
-from airflow.models import DagBag
 import pytest
+
+from airflow.models import DagBag
 
 DAGS_DIR = str(Path(__file__).parents[1] / "dags")
 DAG_ID = "olist_ingest_raw"
