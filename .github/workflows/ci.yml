@@ -48,12 +48,26 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-pip-airflow-${{ hashFiles('requirements.txt') }}
           restore-keys: |
-            ${{ runner.os }}-pip-
+            ${{ runner.os }}-pip-airflow-
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+      # Airflow 2.8 requires sqlalchemy<2.0; use the official constraints file
+      # to ensure a consistent, resolvable dependency set.
+      - name: Install Airflow with constraints
+        run: |
+          pip install "apache-airflow==2.8.0" \
+            --constraint "https://raw.githubusercontent.com/apache/airflow/constraints-2.8.0/constraints-3.11.txt"
+
+      - name: Install remaining test dependencies
+        run: |
+          pip install \
+            "pandas==2.2.0" \
+            "psycopg2-binary==2.9.9" \
+            "python-dotenv==1.0.0" \
+            "loguru==0.7.2" \
+            "pytest==7.4.4" \
+            "ruff==0.1.14"
 
       - name: Lint with ruff
         run: ruff check airflow/ scripts/
@@ -103,6 +117,14 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-dbt-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-dbt-
 
       - name: Install dbt
         run: pip install dbt-postgres==1.7.0
