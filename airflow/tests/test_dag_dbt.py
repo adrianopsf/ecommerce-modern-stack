@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-import pytest
 from airflow.models import DagBag
 from airflow.operators.bash import BashOperator
+import pytest
 
 DAGS_DIR = str(Path(__file__).parents[1] / "dags")
 DAG_ID = "olist_dbt_transformations"

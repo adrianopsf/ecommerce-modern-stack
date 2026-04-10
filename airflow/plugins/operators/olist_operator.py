@@ -88,8 +88,6 @@ class OlistRawLoader:
     }
 
     def __init__(self, data_path: str | None = None):
-        from sqlalchemy import create_engine
-
         self.data_path = Path(data_path or os.getenv("DATA_RAW_PATH", "./data/raw"))
         self.engine = self._build_engine()
 

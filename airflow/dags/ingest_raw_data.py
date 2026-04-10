@@ -1,7 +1,7 @@
 """DAG: olist_ingest_raw — ingests Olist raw CSVs into PostgreSQL raw schema."""
 
-import logging
 from datetime import datetime, timedelta
+import logging
 from pathlib import Path
 
 from airflow.decorators import task
