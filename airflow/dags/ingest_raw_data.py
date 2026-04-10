@@ -1,9 +1,35 @@
-"""DAG: Ingest raw Olist CSVs into PostgreSQL raw schema."""
+"""DAG: olist_ingest_raw — ingests Olist raw CSVs into PostgreSQL raw schema."""
 
+import logging
 from datetime import datetime, timedelta
+from pathlib import Path
 
-from airflow import DAG
-from airflow.operators.python import PythonOperator
+from airflow.decorators import task
+from airflow.exceptions import AirflowSkipException
+from airflow.models import DAG
+from airflow.operators.python import get_current_context
+
+from plugins.operators.olist_operator import OlistPostgresOperator
+
+log = logging.getLogger(__name__)
+
+DATA_RAW_PATH = "/opt/airflow/data/raw"
+
+# Maps task_id -> (csv_filename, raw_table_name)
+OLIST_FILES: dict[str, tuple[str, str]] = {
+    "load_orders": ("olist_orders_dataset.csv", "orders"),
+    "load_customers": ("olist_customers_dataset.csv", "customers"),
+    "load_order_items": ("olist_order_items_dataset.csv", "order_items"),
+    "load_products": ("olist_products_dataset.csv", "products"),
+    "load_sellers": ("olist_sellers_dataset.csv", "sellers"),
+    "load_order_payments": ("olist_order_payments_dataset.csv", "order_payments"),
+    "load_order_reviews": ("olist_order_reviews_dataset.csv", "order_reviews"),
+    "load_geolocation": ("olist_geolocation_dataset.csv", "geolocation"),
+    "load_category_translation": (
+        "product_category_name_translation.csv",
+        "product_category_translation",
+    ),
+}
 
 default_args = {
     "owner": "data-engineering",
@@ -12,32 +38,61 @@ default_args = {
     "email_on_failure": False,
 }
 
-
-def load_raw_data(**context):
-    """Load all raw CSVs from DATA_RAW_PATH into PostgreSQL raw schema."""
-    import os
-
-    from loguru import logger
-
-    from plugins.operators.olist_operator import OlistRawLoader
-
-    data_path = os.getenv("DATA_RAW_PATH", "/opt/airflow/data/raw")
-    loader = OlistRawLoader(data_path=data_path)
-    tables_loaded = loader.load_all()
-    logger.info(f"Loaded {len(tables_loaded)} tables: {tables_loaded}")
-    return tables_loaded
-
-
 with DAG(
-    dag_id="ingest_raw_data",
+    dag_id="olist_ingest_raw",
     description="Ingests Olist raw CSVs into PostgreSQL raw schema",
     schedule_interval="@daily",
     start_date=datetime(2024, 1, 1),
     catchup=False,
+    tags=["olist", "ingestion", "raw"],
     default_args=default_args,
-    tags=["olist", "ingest", "raw"],
 ) as dag:
-    ingest_task = PythonOperator(
-        task_id="load_raw_csvs_to_postgres",
-        python_callable=load_raw_data,
-    )
+
+    @task(task_id="check_files_exist")
+    def check_files_exist():
+        """Verify all 9 Olist CSVs exist before starting load tasks."""
+        raw_path = Path(DATA_RAW_PATH)
+        missing = [
+            filename
+            for filename, _ in OLIST_FILES.values()
+            if not (raw_path / filename).exists()
+        ]
+        if missing:
+            raise AirflowSkipException(
+                f"Missing CSV files in {DATA_RAW_PATH}: {missing}. "
+                "Download the Olist dataset and place CSVs in data/raw/."
+            )
+        log.info("All %d CSV files found in %s", len(OLIST_FILES), DATA_RAW_PATH)
+
+    @task(task_id="validate_row_counts")
+    def validate_row_counts():
+        """Pull XCom row counts from all load tasks and assert none are empty."""
+        ctx = get_current_context()
+        ti = ctx["ti"]
+
+        results: dict[str, int] = {}
+        for task_id, (_, table_name) in OLIST_FILES.items():
+            row_count = ti.xcom_pull(task_ids=task_id) or 0
+            results[table_name] = row_count
+            log.info("Ingestion complete: %s: %d rows", table_name, row_count)
+
+        empty_tables = [t for t, r in results.items() if r == 0]
+        if empty_tables:
+            raise ValueError(f"Tables loaded with 0 rows: {empty_tables}")
+
+        return results
+
+    check = check_files_exist()
+
+    load_tasks = [
+        OlistPostgresOperator(
+            task_id=task_id,
+            data_path=f"{DATA_RAW_PATH}/{filename}",
+            table_name=table_name,
+        )
+        for task_id, (filename, table_name) in OLIST_FILES.items()
+    ]
+
+    validate = validate_row_counts()
+
+    check >> load_tasks >> validate

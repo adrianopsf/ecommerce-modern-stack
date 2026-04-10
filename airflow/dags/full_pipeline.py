@@ -1,69 +1,51 @@
-"""DAG: Full ELT pipeline — ingest raw data then run dbt transformations."""
+"""DAG: olist_full_pipeline — weekly orchestration of ingest + dbt via TriggerDagRunOperator."""
 
+import logging
 from datetime import datetime, timedelta
 
-from airflow import DAG
-from airflow.operators.bash import BashOperator
-from airflow.operators.python import PythonOperator
-from airflow.utils.trigger_rule import TriggerRule
+from airflow.decorators import task
+from airflow.models import DAG
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 
-DBT_PROJECT_DIR = "/opt/airflow/dbt/olist_dw"
+log = logging.getLogger(__name__)
 
 default_args = {
     "owner": "data-engineering",
-    "retries": 1,
-    "retry_delay": timedelta(minutes=5),
+    "retries": 2,
+    "retry_delay": timedelta(minutes=10),
     "email_on_failure": False,
+    "sla": timedelta(hours=2),
 }
 
-
-def load_raw_data(**context):
-    import os
-
-    from loguru import logger
-
-    from plugins.operators.olist_operator import OlistRawLoader
-
-    data_path = os.getenv("DATA_RAW_PATH", "/opt/airflow/data/raw")
-    loader = OlistRawLoader(data_path=data_path)
-    tables_loaded = loader.load_all()
-    logger.info(f"Loaded {len(tables_loaded)} tables into raw schema")
-    return tables_loaded
-
-
 with DAG(
-    dag_id="full_pipeline",
-    description="Full ELT pipeline: ingest Olist CSVs + dbt transformations",
-    schedule_interval="@daily",
+    dag_id="olist_full_pipeline",
+    description="Weekly full ELT pipeline: triggers ingest then dbt transformations",
+    schedule_interval="0 6 * * 1",  # Every Monday at 06:00
     start_date=datetime(2024, 1, 1),
     catchup=False,
+    tags=["olist", "full-pipeline"],
     default_args=default_args,
-    tags=["olist", "pipeline", "full"],
 ) as dag:
-    ingest = PythonOperator(
-        task_id="ingest_raw_data",
-        python_callable=load_raw_data,
+
+    trigger_ingest = TriggerDagRunOperator(
+        task_id="trigger_ingest",
+        trigger_dag_id="olist_ingest_raw",
+        wait_for_completion=True,
+        reset_dag_run=True,
+        poke_interval=30,
     )
 
-    dbt_staging = BashOperator(
-        task_id="dbt_run_staging",
-        bash_command=f"dbt run --select staging --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR}",
+    trigger_dbt = TriggerDagRunOperator(
+        task_id="trigger_dbt",
+        trigger_dag_id="olist_dbt_transformations",
+        wait_for_completion=True,
+        reset_dag_run=True,
+        poke_interval=30,
     )
 
-    dbt_intermediate = BashOperator(
-        task_id="dbt_run_intermediate",
-        bash_command=f"dbt run --select intermediate --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR}",
-    )
+    @task(task_id="notify_success")
+    def notify_success(**context):
+        execution_date = context.get("execution_date") or context.get("logical_date")
+        log.info("Full pipeline completed successfully at %s", execution_date)
 
-    dbt_mart = BashOperator(
-        task_id="dbt_run_mart",
-        bash_command=f"dbt run --select mart --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR}",
-    )
-
-    dbt_test = BashOperator(
-        task_id="dbt_test_all",
-        bash_command=f"dbt test --project-dir {DBT_PROJECT_DIR} --profiles-dir {DBT_PROJECT_DIR}",
-        trigger_rule=TriggerRule.ALL_SUCCESS,
-    )
-
-    ingest >> dbt_staging >> dbt_intermediate >> dbt_mart >> dbt_test
+    trigger_ingest >> trigger_dbt >> notify_success()
