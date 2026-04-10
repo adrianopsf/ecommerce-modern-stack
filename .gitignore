@@ -1,0 +1,35 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment
+.env
+.venv
+venv/
+
+# Data files (not committed)
+data/raw/
+data/processed/
+
+# dbt artifacts
+dbt/olist_dw/target/
+dbt/olist_dw/dbt_packages/
+dbt/olist_dw/logs/
+
+# Airflow
+logs/
+airflow/logs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

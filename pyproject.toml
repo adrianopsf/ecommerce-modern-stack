@@ -1,0 +1,17 @@
+[project]
+name = "ecommerce-modern-stack"
+version = "0.1.0"
+description = "Pipeline ELT com Apache Airflow 2.8, dbt Core 1.7 e PostgreSQL 15 usando o dataset Olist Brazilian E-Commerce."
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["airflow/tests"]
+addopts = "-v"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]

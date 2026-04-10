@@ -1,0 +1,21 @@
+version: 2
+
+models:
+  - name: int_orders_enriched
+    description: "Orders joined with payment totals and item counts."
+    columns:
+      - name: order_id
+        tests:
+          - unique
+          - not_null
+      - name: total_payment_value
+        tests:
+          - not_null
+
+  - name: int_customers_orders
+    description: "Customers enriched with their order history aggregates."
+    columns:
+      - name: customer_unique_id
+        tests:
+          - unique
+          - not_null

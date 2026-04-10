@@ -1,0 +1,9 @@
+order_status,status_label,is_final
+delivered,Entregue,true
+shipped,Em transporte,false
+processing,Em processamento,false
+canceled,Cancelado,true
+invoiced,Faturado,false
+approved,Aprovado,false
+created,Criado,false
+unavailable,Indisponível,true

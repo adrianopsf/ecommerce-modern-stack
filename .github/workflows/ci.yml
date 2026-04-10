@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ruff
+        run: pip install ruff==0.1.14
+
+      - name: Run ruff
+        run: ruff check airflow/
+
+  test-dags:
+    name: Test DAGs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install apache-airflow==2.8.0 pytest==7.4.4
+
+      - name: Run DAG tests
+        env:
+          AIRFLOW__CORE__UNIT_TEST_MODE: "true"
+        run: pytest airflow/tests/ -v
