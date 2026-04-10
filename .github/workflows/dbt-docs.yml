@@ -6,14 +6,45 @@ on:
     paths:
       - "dbt/**"
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
   generate-docs:
     name: Generate & Deploy dbt Docs
     runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: olist_dw_docs
+          POSTGRES_USER: olist_user
+          POSTGRES_PASSWORD: olist_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_USER: olist_user
+      POSTGRES_PASSWORD: olist_pass
+      POSTGRES_DB: olist_dw_docs
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -21,17 +52,21 @@ jobs:
       - name: Install dbt
         run: pip install dbt-postgres==1.7.0
 
+      - name: dbt deps
+        run: dbt deps --project-dir dbt/olist_dw
+
       - name: Generate dbt docs
-        working-directory: dbt/olist_dw
-        env:
-          POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-        run: dbt docs generate
+        run: >
+          dbt docs generate
+          --project-dir dbt/olist_dw
+          --profiles-dir dbt/olist_dw
+          --no-compile
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dbt/olist_dw/target
 
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: dbt/olist_dw/target
+        id: deployment
+        uses: actions/deploy-pages@v4
